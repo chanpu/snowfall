@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title></title>
+  <link rel="stylesheet" href="">
+</head>
+<body>
+<script src="libs/three.min.js"></script>
+<script src="libs/stats.min.js"></script>
+
+<script>
+
+var container, stats;
+var camera, scene, renderer, particles, material, particleCount, pointCloud, texture;
+var xSpeed, ySpeed;
+xSpeed = 0.001;
+ySpeed = 0.001;
+
+init();
+animate();
+
+function init() {
+
+  container = document.createElement( 'div' );
+  document.body.appendChild( container );
+
+  scene = new THREE.Scene();
+
+  // fog設定 カラーとフォグの濃さ
+  scene.fog = new THREE.FogExp2( 0xEEEEEE, 0.001 );
+
+  camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 3000);
+  camera.position.z = 500;
+
+  // パーティクルの数
+  particleCount = 5000;
+  particles = new THREE.Geometry();
+
+  // テクスチャの設定
+  texture = THREE.ImageUtils.loadTexture("images/particles.png")
+
+  // マテリアルの設定
+  material = new THREE.PointCloudMaterial({
+        color: 0xFFFFFF,
+        size: 5,
+        map: texture,
+        transparent: true
+  });
+
+  // パーティクルの位置の設定
+  for (var i = 0; i < particleCount; i++) {
+    var px = Math.random() * 1000 - 500,
+        py = Math.random() * 1000 - 500,
+        pz = Math.random() * 1000 - 500;
+    particle = new THREE.Vector3( px, py, pz);
+
+    // パーティクルのべロシティの設定
+    particle.velocity = new THREE.Vector3( 0, -Math.random(), 0 );
+    particles.vertices.push( particle );
+  }
+
+  pointCloud = new THREE.PointCloud( particles, material );
+
+  // パーティクルの深さを毎フレームソート
+  pointCloud.sortParticles = true;
+
+  scene.add( pointCloud );
+
+  renderer = new THREE.WebGLRenderer( { antialias:true } );
+  renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.setClearColor("#cccccc", 1);
+  container.appendChild( renderer.domElement );
+
+  // Statsの設定
+  stats = new Stats();
+  stats.domElement.style.position = 'absolute';
+  stats.domElement.style.top = '0px';
+  container.appendChild( stats.domElement );
+}
+function animate() {
+  requestAnimationFrame( animate );
+
+  // y軸回転のアニメーション
+  pointCloud.rotation.y += xSpeed;
+
+  var Count = particleCount;
+
+  // パーティクルの落下の設定
+  while(Count--){
+    var particle = particles.vertices[ Count ];
+    // スクリーン下に出たら戻る処理
+    if(particle.y < -400) {
+      particle.y = 400;
+      particle.velocity.y = -Math.random();
+    }
+    particle.velocity.y -= Math.random()*ySpeed;
+    particle.add(particle.velocity);
+  }
+  // 頂点変更処理
+  pointCloud.geometry.__dirtyVertices = true;
+
+  render();
+  stats.update();
+}
+function render() {
+  camera.lookAt( scene.position );
+  renderer.render( scene, camera );
+}
+</script>
+</body>
+</html>
